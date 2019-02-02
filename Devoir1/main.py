@@ -16,9 +16,8 @@ for column in file:
         incomplete_columun.append(column)
 
 for column in incomplete_columun:
-    file[column] = file[column].dropna()
+   file[column].dropna(inplace = True)
 
-print(file["PDQ"].isnull().sum())
 
 #Vérifier la valeur de retour
 
