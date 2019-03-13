@@ -1,6 +1,19 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from sklearn.cluster import DBSCAN
+
+import csv
+import matplotlib.pyplot as plt
+from sklearn.cluster import DBSCAN
+from sklearn import metrics
+#from sklearn.datasets.samples_generator import make_blobs
+from sklearn.preprocessing import StandardScaler
+import csv
+from sklearn.cluster import DBSCAN
+from sklearn import metrics
+from sklearn.datasets.samples_generator import make_blobs
+from sklearn.preprocessing import StandardScaler
 
 file = pd.read_csv("crimeMontreal.csv", encoding = "ISO-8859-1")
 num_ligne = file.shape[0]
@@ -37,3 +50,48 @@ plt.axis('equal')
 
 plt.savefig('PieChart.png')
 plt.show()
+
+
+
+
+
+# #############################################################################
+# Generate sample data
+centers = [[1, 1], [-1, -1], [1, -1]]
+labels_true = file["CATEGORIE"].unique();
+
+
+# Now we can save it to a numpy array.
+file = file[["CATEGORIE" , "QUART", "PDQ"]]
+
+
+categorie = file["CATEGORIE"].unique()
+categorieInt = file["CATEGORIE"].unique()
+
+
+quart = file["QUART"].unique()
+quartInt = file["QUART"].unique()
+
+i = 0;
+for cat in categorie:
+    print(cat, "aura pour valeur", i)
+    categorieInt[i] = i
+    file["CATEGORIE"] = file["CATEGORIE"].str.replace(cat, str(i))
+    i = i + 1
+
+print()
+i = 0;
+for qua in quart:
+    print(qua, "aura pour valeur", i)
+    quartInt[i] = i
+    file["QUART"] = file["QUART"].str.replace(qua, str(i))
+    i = i + 1
+
+
+file["QUART"] = file["QUART"].astype(int)
+file["CATEGORIE"] = file["CATEGORIE"].astype(int)
+
+
+print(file)
+#clustering = DBSCAN(eps=3, min_samples=2, metric='string').fit(X)
+
