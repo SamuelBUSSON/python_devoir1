@@ -6,9 +6,9 @@ import matplotlib.pyplot as plt
 
 from sklearn import cluster, datasets, metrics
 from sklearn.cluster import DBSCAN
-from sklearn.metrics import euclidean_distances
-from sklearn.neighbors import kneighbors_graph
-from sklearn.preprocessing import StandardScaler
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.metrics import accuracy_score
+from sklearn import tree
 
 file = pd.read_csv("crimeMontreal.csv", encoding = "ISO-8859-1")
 num_ligne = file.shape[0]
