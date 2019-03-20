@@ -8,15 +8,17 @@ from sklearn.cluster import KMeans
 # Importation du dataset
 data = pd.read_csv('crimeMontreal.csv', encoding='ISO-8859-1')
 
+#On nettoie les données
 data = data[(data != 0).all(1)]
 data['X'] = data['X'].apply(lambda x: x*0.001)
 data['Y'] = data['Y'].apply(lambda x: x*0.001)
 
+#On récupère le nombre de ligne
 num_ligne = data.shape[0]
+#On ne prend pas toutes les données pour éviter de surcharger la mémoire
 data = data.tail(int(num_ligne/20))
 
-# Paramètre de la figure de clusters
-# plt.rcParams['figure.figsize'] = (16, 9)
+# Paramètre de la figure de clusters, ici on change les categories en numéros
 categorie = data["CATEGORIE"].unique()
 categorieInt = data["CATEGORIE"].unique()
 i = 0;
@@ -27,14 +29,14 @@ for cat in categorie:
    data["CATEGORIE"] = data["CATEGORIE"].replace(cat, i)
    i = i + 1
 
+#On choisit les différentes valeurs de code
 f1 = data['X'].values
 f2 = data['Y'].values
 f3 = data['CATEGORIE'].values
 
+#Les différentes couleurs
 colormap=np.array(['red','green','blue','yellow'])
-# X, y = make_blobs(n_samples=800, n_features=3, centers=4)
 X = np.array(list(zip(f1, f2, f3)))
-print(f1, f3, f2)
 kmeans = KMeans(n_clusters=4)
 kmeans = kmeans.fit(X)
 labels = kmeans.predict(X)
@@ -45,10 +47,16 @@ ax.scatter(f1, f2, f3, c=colormap[kmeans.labels_])
 print(C)
 ax.scatter(C[:, 0], C[:, 1], C[:, 2], marker='*', c='#050505', s=1000)
 
-ax.set_title('Carégorie en fonction des coordonnées ')
-
+#On définit les différents axes
+ax.set_title('Catégorie en fonction des coordonnées ')
 ax.set_xlabel('Latitude')
 ax.set_ylabel('Longitude')
-ax.set_zlabel('Categorie')
+
+
+x = ['Méfait', 'Vol contenu ', 'Vol véhicule', 'Introduction', 'Vols', 'Crimes']
+l = [0, 1, 2, 3, 4, 5]
+
+ax.set_zticks(l)
+ax.set_zticklabels(x)
 
 plt.show()
