@@ -5,6 +5,13 @@ from matplotlib.ticker import NullFormatter
 
 file = pd.read_csv("student-mat.csv", encoding = "ISO-8859-1", delimiter=";")
 
+num_ligne = file.shape[0]
+num_column = file.shape[1]
+
+for column in file:
+    count_lines = file[column].isnull().sum()
+    print("Sur les", num_ligne, "lignes, il y a", count_lines , "ligne(s) avec des données manquantes dans la colonne", column)
+
 dataframe = pd.DataFrame(file) #Transformation en dataframe
 
 df1 = dataframe["absences"].unique().tolist()
