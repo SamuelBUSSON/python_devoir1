@@ -1,17 +1,22 @@
+
 import matplotlib.pyplot as plt
 import seaborn as sns
 from scipy import stats
 import pandas as pd
-from sklearn import tree
+from sklearn import tree, linear_model
 import graphviz
+import numpy as np
 from sklearn.metrics import confusion_matrix, precision_score
 
 
 
 
 #Class grade in 3 parts, low, average and High
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, cross_validate, GridSearchCV
+from sklearn.neighbors import KNeighborsRegressor
 from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier
+
 
 
 def marks(total_grades):
@@ -74,8 +79,14 @@ def getPValueScore(student_data, analyzeData, title):
     # analyzeData = str(analyzeData)
 
     # p-value between total grade and attribute
-    pearson_coef, p_value = stats.pearsonr(student_data[analyzeData], student_data["total_grades"])
+
+    student_data["grades"] = pd.Categorical(student_data["grades"])
+    student_data["grades"] = student_data["grades"].cat.codes
+
+    pearson_coef, p_value = stats.pearsonr(student_data[analyzeData], student_data["grades"])
     print("The Correlation Coefficient is", pearson_coef, " with a P-value of P =", p_value, "for students in", title)
+
+
 
 all_studentsMat = mergeMarksData("student-mat.csv")
 all_studentsPor = mergeMarksData("student-por.csv")
@@ -85,38 +96,66 @@ showAverageMarks(all_studentsPor, "Portuguese")
 
 plt.show()
 
-
 getPValueScore(all_studentsMat, "absences", "Math")
 getPValueScore(all_studentsPor, "absences", "Portuguese")
 
 
 #split dataset in features and target variable
-feature_cols = ['studytime', 'absences', 'freetime', 'goout', 'total_grades']
+
+#Convert all string as number
+for col in all_studentsMat.columns:  # Iterate over chosen columns
+    all_studentsMat[col] = pd.Categorical(all_studentsMat[col])
+    all_studentsMat[col] = all_studentsMat[col].cat.codes
+
+
+targetColumn = 'grades'
+feature_cols = ["sex","studytime","famsize","Pstatus","Mjob","Fjob","absences","freetime", 'schoolsup', 'activities', 'higher', 'Walc', 'romantic' ]
+
 X = all_studentsMat[feature_cols] # Features
-y = all_studentsMat.values# Target variable
+y = all_studentsMat.values # Target variable
 
-y = all_studentsMat.values# Target variable
 
-X_train, X_test, y_train, y_test = train_test_split(all_studentsMat, y, test_size = 0.2, random_state = 0)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.2, random_state = 0)
 
-dt = DecisionTreeClassifier(min_samples_split=20, random_state=5)
+
+#Try to predict with randomForestClassifier
+classifier=RandomForestClassifier(n_estimators=80,criterion="entropy",random_state=0)
+classifier.fit(X_train,y_train)
+
+#predicting the test set re4sults
+y_pred_random=classifier.predict(X_test)
+
+#Get importance of features in classification
+importances=classifier.feature_importances_
+
+#Get indice of each importances to show them on plot
+indices = np.argsort(importances)
+
+#Get columns name from indices
+names = [X_train.columns[i] for i in indices]
+
+#Prepare the diagram from X_Train
+plt.figure(figsize=(20,20))
+plt.bar(range(X_train.shape[1]), importances[indices],width=0.5)
+plt.xticks(range(X_train.shape[1]),names, rotation=60, fontsize = 12)
+# Create plot title
+plt.title("Feature Importance RandomForest")
+# Show plot
+plt.show()
+
+y_pred = classifier.predict(X_test)
+print(y_pred)
+
+'''
+dt = DecisionTreeClassifier(min_samples_split=20, random_state=3)
 dt.fit(X_train, y_train)
 
+classe_names = dt.classes_
+print(classe_names)
 
-dot_data = tree.export_graphviz(dt, out_file=None, rounded=True, feature_names=feature_cols)
+dot_data = tree.export_graphviz(dt, out_file = None, rounded = True, feature_names = feature_cols)
 
 graph = graphviz.Source(dot_data)
 graph.render("Classification")
-#
-# clf_entropy = DecisionTreeClassifier(criterion="entropy", random_state=5, max_depth=3)
-# clf_entropy.fit(X_train, y_train)
-#ValueError: could not convert string to float: 'GP'
 
-# dot_data = tree.export_graphviz(clf_entropy, out_file=None, rounded=True, feature_names=feature_cols)
-#
-# graph = graphviz.Source(dot_data)
-# graph.render("Classification_entropy")
-#
-#
-# y_predicted = clf_entropy.predict(X_test.astype(int))
-# print("Precision score :", precision_score(y_test[:, 0], y_predicted[:, 0]))
+'''
