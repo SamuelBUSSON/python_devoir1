@@ -1,18 +1,18 @@
 
 import matplotlib.pyplot as plt
 import seaborn as sns
+from keras.losses import mean_squared_error
 from scipy import stats
 import pandas as pd
-from sklearn import tree, linear_model
+from sklearn import tree, linear_model, preprocessing, model_selection, metrics
 import graphviz
 import numpy as np
-from sklearn.metrics import confusion_matrix, precision_score
-
-
-
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import confusion_matrix, precision_score, accuracy_score, classification_report, r2_score
 
 #Class grade in 3 parts, low, average and High
-from sklearn.model_selection import train_test_split, cross_validate, GridSearchCV
+from sklearn.model_selection import train_test_split, cross_validate, GridSearchCV, cross_val_score
+from sklearn.naive_bayes import GaussianNB
 from sklearn.neighbors import KNeighborsRegressor
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier
@@ -20,11 +20,13 @@ from sklearn.ensemble import RandomForestClassifier
 
 
 def marks(total_grades):
-    if(total_grades < 7):
+    if(total_grades < 5):
+        return("Very Low")
+    if(total_grades < 12 and total_grades >=5):
         return("Low")
-    if(total_grades >= 7 and total_grades < 14):
+    if(total_grades >= 12 and total_grades < 16):
         return("Average")
-    if(total_grades >= 14):
+    if(total_grades >= 16):
         return("High")
 
 
@@ -48,7 +50,8 @@ def mergeMarksData(csv_name):
     #                              #
 
     # remove the grading
-    student_Without_All_Grad = all_students.drop(["G1", "G2", "G3"], axis=1)
+    # student_Without_All_Grad = all_students.drop(["G1", "G2", "G3"], axis=1)
+    student_Without_All_Grad = all_students
     max = student_Without_All_Grad["total_grades"].max()
     min = student_Without_All_Grad["total_grades"].min()
 
@@ -63,29 +66,12 @@ def mergeMarksData(csv_name):
 
 def getPValueScore(student_data, analyzeData, title):
 
-
-    # print(student_data[analyzeData].dtype)
-    #
-    # type = student_data[analyzeData].unique()
-    # typeInt = student_data[analyzeData].unique()
-    #
-    # i = 0;
-    # print("We replace " + analyzeData + " by numbers")
-    # for cat in type:
-    #     print(cat, " got value ", i)
-    #     typeInt[i] = i
-    #     student_data[analyzeData] = student_data[analyzeData].str.replace(cat, str(i))
-    #     i = i + 1
-    # analyzeData = str(analyzeData)
-
     # p-value between total grade and attribute
-
     student_data["grades"] = pd.Categorical(student_data["grades"])
     student_data["grades"] = student_data["grades"].cat.codes
 
     pearson_coef, p_value = stats.pearsonr(student_data[analyzeData], student_data["grades"])
     print("The Correlation Coefficient is", pearson_coef, " with a P-value of P =", p_value, "for students in", title)
-
 
 
 all_studentsMat = mergeMarksData("student-mat.csv")
@@ -108,25 +94,46 @@ for col in all_studentsMat.columns:  # Iterate over chosen columns
     all_studentsMat[col] = all_studentsMat[col].cat.codes
 
 
-targetColumn = 'grades'
-feature_cols = ["sex","studytime","famsize","Pstatus","Mjob","Fjob","absences","freetime", 'schoolsup', 'activities', 'higher', 'Walc', 'romantic' ]
-
-X = all_studentsMat[feature_cols] # Features
-y = all_studentsMat.values # Target variable
+targetColumn = 'total_grades'
+feature_cols = ["failures", "studytime","famsize","Pstatus","Medu","Fedu","absences","freetime", 'schoolsup', 'activities', 'higher', 'Walc', 'romantic', 'G1', 'G2', 'G3' ]
 
 
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.2, random_state = 0)
+X_AllColumn = all_studentsMat[feature_cols]
+Y_FinalGrade = all_studentsMat[targetColumn]
+
+X_train, X_test, y_train, Y_test = train_test_split(X_AllColumn, Y_FinalGrade, test_size=0.3, random_state=0)
+
+#Let's try different prediction model
+
+#First
+print("#--------------#")
+print("LinearRegression")
+print("#--------------#")
+print()
+
+model = LinearRegression()
+model.fit(X_train, y_train)
+y_pred = model.predict(X_test)
+
+# The coefficients
+print('Coefficients : \n', model.coef_)
+# Explained variance score: 1 is perfect prediction
+print("LinearRegression --> model score =",model.score(X=X_test, y=Y_test))
 
 
-#Try to predict with randomForestClassifier
-classifier=RandomForestClassifier(n_estimators=80,criterion="entropy",random_state=0)
-classifier.fit(X_train,y_train)
+#Second
+print()
+print("#--------------------#")
+print("RandomForestClassifier")
+print("#--------------------#")
+print()
 
-#predicting the test set re4sults
-y_pred_random=classifier.predict(X_test)
+model = RandomForestClassifier(n_estimators=80,criterion="entropy",random_state=0)
+model.fit(X_train, y_train)
+y_pred = model.predict(X_test)
 
 #Get importance of features in classification
-importances=classifier.feature_importances_
+importances = model.feature_importances_
 
 #Get indice of each importances to show them on plot
 indices = np.argsort(importances)
@@ -143,19 +150,40 @@ plt.title("Feature Importance RandomForest")
 # Show plot
 plt.show()
 
-y_pred = classifier.predict(X_test)
-print(y_pred)
+print("RandomForestClassifier --> model score =",model.score(X=X_test, y=Y_test))
 
-'''
-dt = DecisionTreeClassifier(min_samples_split=20, random_state=3)
-dt.fit(X_train, y_train)
+#Third
+print()
+print("#----------------------#")
+print(" DecisionTreeClassifier ")
+print("#----------------------#")
+print()
 
-classe_names = dt.classes_
-print(classe_names)
+model = DecisionTreeClassifier(min_samples_split=20, random_state=5)
+model.fit(X_train, y_train)
+y_pred = model.predict(X_test)
 
-dot_data = tree.export_graphviz(dt, out_file = None, rounded = True, feature_names = feature_cols)
+dot_data = tree.export_graphviz(model, out_file=None, rounded=True, feature_names=feature_cols)
 
 graph = graphviz.Source(dot_data)
-graph.render("Classification")
+graph.render("Student")
 
-'''
+print("DecisionTreeClassifier --> model score =",model.score(X=X_test, y=Y_test))
+
+#Third
+print()
+print("#----------------------------#")
+print("DecisionTreeClassifier Entropy")
+print("#----------------------------#")
+print()
+
+model = DecisionTreeClassifier(criterion="entropy", random_state=5, max_depth=3)
+model.fit(X_train, y_train)
+y_pred = model.predict(X_test)
+
+dot_data = tree.export_graphviz(model, out_file=None, rounded=True, feature_names=feature_cols)
+
+graph = graphviz.Source(dot_data)
+graph.render("Student_entropy")
+
+print("DecisionTreeClassifier Entropy --> model score =",model.score(X=X_test, y=Y_test))

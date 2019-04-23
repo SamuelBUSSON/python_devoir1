@@ -247,4 +247,3 @@ graph.render("Dangerosité_entropy")
 y_predicted = clf_entropy.predict(X_test.astype(int))
 print("Precision score :", precision_score(y_test[:, 0], y_predicted[:, 0]))
 
-
